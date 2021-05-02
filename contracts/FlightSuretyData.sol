@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity >=0.4.25;
 
 import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
 
@@ -9,8 +9,19 @@ contract FlightSuretyData {
     /*                                       DATA VARIABLES                                     */
     /********************************************************************************************/
 
+    struct Airline {
+        bool isRegistered;
+        bool isOperational;
+        uint256 fund;
+    }
+
     address private contractOwner;                                      // Account used to deploy contract
     bool private operational = true;                                    // Blocks all state changes throughout the contract if false
+    address[] multiCalls = new address[](0);
+
+    mapping(address => Airline) airlines;
+    mapping(address => bool) authorizedCallers; 
+    mapping(address => uint256) private votes;
 
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
@@ -21,10 +32,8 @@ contract FlightSuretyData {
     * @dev Constructor
     *      The deploying account becomes contractOwner
     */
-    constructor
-                                (
-                                ) 
-                                public 
+    constructor() 
+    public 
     {
         contractOwner = msg.sender;
     }
@@ -98,14 +107,34 @@ contract FlightSuretyData {
     *      Can only be called from FlightSuretyApp contract
     *
     */   
-    function registerAirline
-                            (   
-                            )
-                            external
-                            pure
+    function registerAirline(address account, bool status)
+    external
+    requireIsOperational
     {
+        airlines[account] = Airline({
+            isRegistered: true,
+            isOperational: status,
+            fund: 0
+        });
+
+        setmultiCalls(account);
     }
 
+    function isAirlineOperational(address account)
+    public
+    view
+    returns(bool)
+    {
+        return airlines[account].isOperational;
+    }
+
+    function isAirline(address airline)
+    external
+    view
+    returns(bool)
+    {
+        return airlines[airline].isRegistered;
+    }
 
    /**
     * @dev Buy insurance for a flight
@@ -149,17 +178,17 @@ contract FlightSuretyData {
     *      resulting in insurance payouts, the contract should be self-sustaining
     *
     */   
-    function fund
-                            (   
-                            )
-                            public
-                            payable
+    function fund(address account, uint256 amount)
+    external
+    requireIsOperational
     {
+        airlines[account].isOperational = true;
+        airlines[account].fund = amount;
     }
 
     function getFlightKey
                         (
-                            address airline,
+                            address account,
                             string memory flight,
                             uint256 timestamp
                         )
@@ -167,20 +196,66 @@ contract FlightSuretyData {
                         internal
                         returns(bytes32) 
     {
-        return keccak256(abi.encodePacked(airline, flight, timestamp));
+        return keccak256(abi.encodePacked(account, flight, timestamp));
     }
 
-    /**
-    * @dev Fallback function for funding smart contract.
-    *
-    */
-    function() 
-                            external 
-                            payable 
+    function authorizeCaller(address caller)
+    external
+    requireContractOwner
     {
-        fund();
+        authorizedCallers[caller] = true;
     }
 
+    /********************************************************************************************/
+    /*                                     VOTE SYSTEM                                          */
+    /********************************************************************************************/
 
+    function getVoteCounter(address account)
+    external
+    view
+    requireIsOperational 
+    returns(uint)
+    {
+        return votes[account];
+    }
+
+    function incrementVoteCounter(address account)
+    external
+    requireIsOperational
+    {
+        uint256 vote = votes[account];
+        votes[account] = vote.add(1);
+    }
+
+    function resetVoteCounter(address account)
+    external
+    requireIsOperational
+    {
+        delete votes[account];
+    }
+
+    function multiCallsLength()
+    external
+    view
+    requireIsOperational
+    returns (uint)
+    {
+        return multiCalls.length;
+    }
+
+    function setmultiCalls(address account)
+    private
+    {
+        multiCalls.push(account);
+    }
+
+    /********************************************************************************************/
+    /*                                     FALLBACK                                             */
+    /********************************************************************************************/
+    function() 
+    external 
+    payable 
+    {
+        this.fund(msg.sender, msg.value);
+    }
 }
-

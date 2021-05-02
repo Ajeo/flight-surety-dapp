@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity >=0.4.25;
 
 // It's important to avoid vulnerabilities due to numeric overflow bugs
 // OpenZeppelin's SafeMath library, when used correctly, protects agains such bugs
@@ -24,6 +24,9 @@ contract FlightSuretyApp {
     uint8 private constant STATUS_CODE_LATE_TECHNICAL = 40;
     uint8 private constant STATUS_CODE_LATE_OTHER = 50;
 
+    uint private constant MIN_CONSENSUS_RESPONSES = 4;
+    bool private voting = false;
+
     address private contractOwner;          // Account used to deploy contract
 
     struct Flight {
@@ -33,7 +36,13 @@ contract FlightSuretyApp {
         address airline;
     }
     mapping(bytes32 => Flight) private flights;
+    FlightSuretyDataInterface flightSuretyData;
 
+    /********************************************************************************************/
+    /*                                       EVENTS                                             */
+    /********************************************************************************************/
+
+    event RegisterAirline(address account);
  
     /********************************************************************************************/
     /*                                       FUNCTION MODIFIERS                                 */
@@ -71,12 +80,13 @@ contract FlightSuretyApp {
     * @dev Contract constructor
     *
     */
-    constructor
-                                (
-                                ) 
-                                public 
+    constructor(address dataContract)
+    public 
     {
         contractOwner = msg.sender;
+        flightSuretyData = FlightSuretyDataInterface(dataContract);
+        flightSuretyData.registerAirline(contractOwner, true);
+        emit RegisterAirline(contractOwner);
     }
 
     /********************************************************************************************/
@@ -95,21 +105,64 @@ contract FlightSuretyApp {
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
 
+    function approveAirlineRegistration(address airline)
+    public
+    requireIsOperational
+    {
+        flightSuretyData.incrementVoteCounter(airline);
+        voting = true;
+    }
   
    /**
     * @dev Add an airline to the registration queue
     *
     */   
-    function registerAirline
-                            (   
-                            )
-                            external
-                            pure
-                            returns(bool success, uint256 votes)
+    function registerAirline(address airline)
+    external
+    returns (bool success, uint256 votes)
     {
-        return (success, 0);
+        require(airline != address(0), "Airline address is invalid");
+        require(flightSuretyData.isAirlineOperational(msg.sender), "Airline is already operational");
+
+        uint256 multiCallsLength = flightSuretyData.multiCallsLength();
+
+        if (multiCallsLength < MIN_CONSENSUS_RESPONSES) {
+            flightSuretyData.registerAirline(airline, false);
+            emit RegisterAirline(airline);
+
+            return(true, 0);
+        } else {
+            if (voting) {
+                uint voteCounter = flightSuretyData.getVoteCounter(airline);
+
+                if (voteCounter >= multiCallsLength.div(2)) {
+                    flightSuretyData.registerAirline(airline, false);
+
+                    voting = false;
+                    flightSuretyData.resetVoteCounter(airline);
+
+                    emit RegisterAirline(airline);
+                    return(true, voteCounter);
+                } else {
+                    flightSuretyData.resetVoteCounter(airline);
+                    return(false, voteCounter); 
+                }
+            } else {
+                return(false, 0);
+            }
+        }
     }
 
+    function fund()
+    public
+    payable 
+    requireIsOperational
+    {
+        require(msg.value == 10 ether, "At least 10 ETH are needed");
+        require(!flightSuretyData.isAirlineOperational(msg.sender), "Airline is already operational");
+
+        flightSuretyData.fund(msg.sender, msg.value); 
+    }
 
    /**
     * @dev Register a future flight for insuring.
@@ -334,4 +387,15 @@ contract FlightSuretyApp {
 
 // endregion
 
-}   
+}
+
+interface FlightSuretyDataInterface {
+    function fund(address account, uint256 amount) external;
+    function registerAirline(address airline, bool status) external;
+    function isAirlineOperational(address airline) external returns(bool);
+    function multiCallsLength() external returns(uint);
+
+    function getVoteCounter(address account) external view returns(uint);
+    function incrementVoteCounter(address account) external;
+    function resetVoteCounter(address account) external;
+}
