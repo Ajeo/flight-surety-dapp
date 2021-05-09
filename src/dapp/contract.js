@@ -26,6 +26,8 @@ export default class Contract {
         this.airlines.push(accts[counter++]);
       }
 
+      this.fundAirline(this.airlines[3]);
+
       while (this.passengers.length < 5) {
         this.passengers.push(accts[counter++]);
       }
@@ -44,6 +46,17 @@ export default class Contract {
       });
   }
 
+  fundAirline(airlineAddress) {
+    let self = this;
+    const amount = Web3.utils.toWei("10", "ether");
+
+    self.flightSuretyApp.methods
+      .fund()
+      .send({ from: airlineAddress, value: amount }, (error, result) => {
+        console.log(error, result);
+      });
+  }
+
   isOperational(callback) {
     let self = this;
     self.flightSuretyApp.methods
@@ -51,10 +64,48 @@ export default class Contract {
       .call({ from: self.owner }, callback);
   }
 
+  buyInsurance(amount, flight, callback) {
+    let self = this;
+
+    try {
+      let payload = {
+        airline: self.airlines[3],
+        flight,
+        amount: self.web3.utils.toWei(amount, "ether").toString(),
+        timestamp: Math.floor(Date.now() / 1000),
+      };
+
+      self.flightSuretyApp.methods
+        .buyInsurance(payload.airline)
+        .send(
+          { from: self.passengers[3], value: payload.amount },
+          (error, result) => {
+            callback(error, result);
+          }
+        );
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  withdraw(callback) {
+    let self = this;
+
+    try {
+      self.flightSuretyApp.methods
+        .withdraw()
+        .send({ from: self.passengers[3] }, (error, result) => {
+          callback(error, result);
+        });
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
   fetchFlightStatus(flight, callback) {
     let self = this;
     let payload = {
-      airline: self.airlines[0],
+      airline: self.airlines[3],
       flight: flight,
       timestamp: Math.floor(Date.now() / 1000),
     };
@@ -62,30 +113,8 @@ export default class Contract {
     self.flightSuretyApp.methods
       .fetchFlightStatus(payload.airline, payload.flight, payload.timestamp)
       .send({ from: self.owner }, (error, result) => {
+        console.log(error, payload);
         callback(error, payload);
       });
-  }
-
-  async buyInsurance(amount, flight, callback) {
-    let self = this;
-
-    try {
-      let payload = {
-        airline: self.airlines[0],
-        flight: flight,
-        amount: self.web3.utils.toWei(amount, "ether").toString(),
-        timestamp: Math.floor(Date.now() / 1000),
-      };
-
-      console.log(payload);
-
-      self.flightSuretyApp.methods
-        .buyInsurance(self.airlines[2]['address'])
-        .send({ from: self.passengers[1], value: toSend,  gas: self.gas }, (error, result) => {
-          callback(error, result);
-        });
-    } catch (error) {
-      console.log(error);
-    }
   }
 }

@@ -12,9 +12,21 @@
       rel="stylesheet"
     />
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.min.js" integrity="sha384-+YQ4JLhjyBLPDQt//I+STsc9iw4uQqACwlvpslubQzn4u2UU2UFM80nGisd026JF" crossorigin="anonymous"></script>
+    <script
+      src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+      integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+      integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.min.js"
+      integrity="sha384-+YQ4JLhjyBLPDQt//I+STsc9iw4uQqACwlvpslubQzn4u2UU2UFM80nGisd026JF"
+      crossorigin="anonymous"
+    ></script>
   </head>
 
   <body>
@@ -27,23 +39,65 @@
 
     <main class="container">
       <div>
-        <h3>Buy a flight insurance:</h3>
+        <h2 class="mb-3">Flight</h2>
+        <input id="flight-number" type="text" hidden />
 
-        <div class="dropdown">
-          <a class="btn btn-primary dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        <div class="form-group dropdown">
+          <a
+            class="btn btn-primary dropdown-toggle"
+            href="#"
+            role="button"
+            id="dropdownMenuLink"
+            data-toggle="dropdown"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >
             Select a flight
           </a>
-        
-          <div id="flights" class="dropdown-menu" aria-labelledby="dropdownMenuLink"></div>
-        </div>
 
-        <button id="flight-insurance" type="button" class="btn btn-light my-2">Buy</button>
+          <div
+            id="flights"
+            class="dropdown-menu"
+            aria-labelledby="dropdownMenuLink"
+          ></div>
+        </div>
+      </div>
+
+      <div>
+        <h4 class="mb-3">Buy a flight insurance</h4>
+
+        <form>
+          <div class="form-group col-sm-3" style="padding: 0">
+            <label class="from">Insurance Amount (0.01 ~ 1 ETH) </label>
+            <input
+              type="number"
+              id="insurance-amount"
+              min="0"
+              max="1"
+              step="0.01"
+            />
+          </div>
+
+          <button
+            id="buy-flight-insurance"
+            type="button"
+            class="btn btn-light my-2"
+          >
+            Buy
+          </button>
+        </form>
       </div>
 
       <div id="display-wrapper" class="top-20"></div>
+
       <div class="row top-20">
-        <label class="form">Flight</label>
-        <btn class="btn btn-primary" id="submit-oracle">Submit to Oracles</btn>
+        <btn class="btn btn-primary" id="submit-oracle"
+          >Submit flight to Oracles</btn
+        >
+
+        <btn class="btn btn-primary ml-2" id="withdraw-credits"
+          >Withdraw Credits</btn
+        >
       </div>
     </main>
   </body>

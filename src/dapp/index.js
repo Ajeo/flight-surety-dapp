@@ -2,12 +2,10 @@ import DOM from "./dom";
 import Contract from "./contract";
 import "./flightsurety.css";
 
-const SERVER_URL = 'http://localhost:3000';
+const SERVER_URL = "http://localhost:3000";
 
 (async () => {
-  let result = null;
   let contract = new Contract("localhost", () => {
-    // Read transaction
     contract.isOperational((error, result) => {
       console.log(error, result);
       display("Operational Status", "Check if contract is operational", [
@@ -15,14 +13,13 @@ const SERVER_URL = 'http://localhost:3000';
       ]);
     });
 
-    // User-submitted transaction
     DOM.elid("submit-oracle").addEventListener("click", () => {
       let flight = DOM.elid("flight-number").value;
-      // Write transaction
+
       contract.fetchFlightStatus(flight, (error, result) => {
         display("Oracles", "Trigger oracles", [
           {
-            label: "Fetch Flight Status",
+            label: "Set Flight Status",
             error: error,
             value: result.flight + " " + result.timestamp,
           },
@@ -30,10 +27,16 @@ const SERVER_URL = 'http://localhost:3000';
       });
     });
 
+    DOM.elid("withdraw-credits").addEventListener("click", () => {
+      contract.withdraw((error, result) => {
+        console.log(error, result);
+      });
+    });
+
     const display = (title, description, results) => {
       let displayDiv = DOM.elid("display-wrapper");
       let section = DOM.section();
-      section.appendChild(DOM.h2(title));
+      section.appendChild(DOM.h4(title));
       section.appendChild(DOM.h5(description));
       results.map((result) => {
         let row = section.appendChild(DOM.div({ className: "row" }));
@@ -47,57 +50,78 @@ const SERVER_URL = 'http://localhost:3000';
         section.appendChild(row);
       });
       displayDiv.append(section);
-    }
-    
-    const buyInsurance = (event) => {
-      const flight = event.target.value;
-      const amount = 1;
-      console.log(flight);
-    
+    };
+
+    const buyInsurance = () => {
+      const flight = DOM.elid("flight-number").value;
+      const amount = DOM.elid("insurance-amount").value;
+      console.log(flight, amount);
+
       try {
-        contract.buyInsurance(amount, (error, result) => {
+        contract.buyInsurance(amount, flight, (error, result) => {
           console.log("Insurance purchased with", amount);
-          display('Oracles', 'Trigger oracles', [{ label: 'Assurance Detail', error: error, value: "Flight Name: " + flight + " | Assurance Paid: " + price + " ether" + " | Paid on Delay: " + price * 1.5 + " ether" }], "display-flight", "display-detail");
+          display(
+            "Oracles",
+            "Trigger oracles",
+            [
+              {
+                label: "Assurance Detail",
+                error: error,
+                value:
+                  "Flight Name: " +
+                  flight +
+                  " | Assurance Paid: " +
+                  amount +
+                  " ether" +
+                  " | Paid on Delay: " +
+                  amount * 1.5 +
+                  " ETH",
+              },
+            ],
+            "display-flight",
+            "display-detail"
+          );
         });
       } catch (error) {
         console.log(error);
       }
-    }
-    
+    };
+
     const selectFlight = (event) => {
       DOM.elid("dropdownMenuLink").textContent = event.target.text;
-      DOM.elid("flight-insurance").value = event.target.text;
+      DOM.elid("flight-number").value = event.target.text;
     };
-    
+
     const renderFlights = async () => {
       try {
         const response = await fetch(`${SERVER_URL}/api/flights`);
         const json = await response.json();
-    
-        json.data.forEach(f => {
+
+        json.flights.forEach((f) => {
           const option = DOM.a(
             {
               className: `dropdown-item`,
               href: `#`,
             },
-            f.name, 
+            f.name
           );
-    
+
           option.addEventListener("click", selectFlight);
-    
+
           DOM.elid("flights").appendChild(option);
         });
-    
-        DOM.elid("flight-insurance").addEventListener("click", buyInsurance);
+
+        DOM.elid("buy-flight-insurance").addEventListener(
+          "click",
+          buyInsurance
+        );
       } catch (error) {
         console.log(error);
       }
     };
 
-    // Render Connected Wallet Address in Navbar
-    DOM.elid("connected-address").textContent = contract.owner;
+    DOM.elid("connected-address").textContent = contract.passengers[3];
 
-    // Render flights
     renderFlights();
   });
 })();
